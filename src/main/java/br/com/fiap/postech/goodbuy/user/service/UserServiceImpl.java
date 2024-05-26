@@ -1,0 +1,77 @@
+package br.com.fiap.postech.goodbuy.user.service;
+
+import br.com.fiap.postech.goodbuy.user.entity.User;
+import br.com.fiap.postech.goodbuy.user.repository.UserRepository;
+import io.micrometer.common.util.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+@Service
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+
+    @Autowired
+    public UserServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public User save(User user) {
+        if (userRepository.findByCpf(user.getCpf()).isPresent()) {
+            throw new IllegalArgumentException("Já existe um user cadastrado com esse cpf.");
+        }
+        if (userRepository.findByLogin(user.getLogin()).isPresent()) {
+            throw new IllegalArgumentException("Já existe um user cadastrado com esse login.");
+        }
+        user.setId(UUID.randomUUID());
+        return userRepository.save(user);
+    }
+
+    @Override
+    public Page<User> findAll(Pageable pageable, User user) {
+        Example<User> userExample = Example.of(user);
+        return userRepository.findAll(userExample, pageable);
+    }
+
+    @Override
+    public User findById(UUID id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User não encontrado com o ID: " + id));
+    }
+
+    @Override
+    public User update(UUID id, User userParam) {
+        User user = findById(id);
+        if (StringUtils.isNotEmpty(userParam.getName())) {
+            user.setName(userParam.getName());
+        }
+        if (userParam.getId() != null && !user.getId().equals(userParam.getId())) {
+            throw new IllegalArgumentException("Não é possível alterar o id de um user.");
+        }
+        if (userParam.getLogin() != null && !user.getLogin().equals(userParam.getLogin())) {
+            throw new IllegalArgumentException("Não é possível alterar o login de um user.");
+        }
+        if (userParam.getCpf() != null && !user.getCpf().equals(userParam.getCpf())) {
+            throw new IllegalArgumentException("Não é possível alterar o cpf de um user.");
+        }
+        if (userParam.getRole() != null && !user.getRole().equals(userParam.getRole())) {
+            throw new IllegalArgumentException("Não é possível alterar o perfil de um user.");
+        }
+        if (StringUtils.isNotEmpty(userParam.getName())) {
+            user.setName(userParam.getName());
+        }
+        user = userRepository.save(user);
+        return user;
+    }
+
+    @Override
+    public void delete(UUID id) {
+        findById(id);
+        userRepository.deleteById(id);
+    }
+}
