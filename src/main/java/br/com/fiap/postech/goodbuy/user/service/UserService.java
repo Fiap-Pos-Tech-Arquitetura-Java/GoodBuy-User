@@ -1,6 +1,7 @@
 package br.com.fiap.postech.goodbuy.user.service;
 
 import br.com.fiap.postech.goodbuy.user.entity.User;
+import br.com.fiap.postech.goodbuy.user.security.Token;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,4 +17,8 @@ public interface UserService {
     User update(UUID id, User user);
 
     void delete(UUID id);
+
+    User findByLogin(String username);
+
+    Token login(User user) throws Exception;
 }

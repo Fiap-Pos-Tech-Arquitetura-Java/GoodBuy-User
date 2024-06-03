@@ -1,6 +1,7 @@
 package br.com.fiap.postech.goodbuy.user.controller;
 
 import br.com.fiap.postech.goodbuy.user.entity.User;
+import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.helper.UserHelper;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -39,6 +41,7 @@ public class UserControllerIT {
         @Test
         void devePermitirCadastrarUser() {
             var user = UserHelper.getUser(false);
+            user.setLogin(user.getLogin() + "!!!");
             given()
                 .contentType(MediaType.APPLICATION_JSON_VALUE).body(user)
             .when()
@@ -46,16 +49,10 @@ public class UserControllerIT {
             .then()
                 .statusCode(HttpStatus.CREATED.value())
                 .body(matchesJsonSchemaInClasspath("schemas/user.schema.json"));
-            // TODO VERIFICAR A OBRIGATORIEDADE DO ID
         }
 
         @Test
         void deveGerarExcecao_QuandoCadastrarUser_RequisicaoXml() {
-            /*
-              Na aula o professor instanciou uma string e enviou no .body()
-              Mas como o teste valida o contentType o body pode ser enviado com qualquer conteudo
-              ou nem mesmo ser enviado como ficou no teste abaixo.
-             */
             given()
                 .contentType(MediaType.APPLICATION_XML_VALUE)
             .when()
@@ -72,20 +69,19 @@ public class UserControllerIT {
         void devePermitirBuscarUserPorId() {
             var id = "7a04f6fb-c79b-4b47-af54-9bef34cbab35";
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .get(USER + "/{id}", id)
             .then()
                 .statusCode(HttpStatus.OK.value())
                 .body(matchesJsonSchemaInClasspath("schemas/user.schema.json"));
-            // TODO VERIFICAR A OBRIGATORIEDADE DO ID
         }
         @Test
         void deveGerarExcecao_QuandoBuscarUserPorId_idNaoExiste() {
             var id = UserHelper.getUser(true).getId();
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .get(USER + "/{id}", id)
@@ -96,7 +92,7 @@ public class UserControllerIT {
         @Test
         void devePermitirBuscarTodosUser() {
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .get(USER)
@@ -108,7 +104,7 @@ public class UserControllerIT {
         @Test
         void devePermitirBuscarTodosUser_ComPaginacao() {
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .queryParam("page", "1")
                 .queryParam("size", "1")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -133,7 +129,7 @@ public class UserControllerIT {
             );
             user.setId(UUID.fromString("c5ce37f4-3160-48d0-bd89-1d680ff77808"));
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .body(user).contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .put(USER + "/{id}", user.getId())
@@ -146,11 +142,11 @@ public class UserControllerIT {
         void deveGerarExcecao_QuandoAlterarUser_RequisicaoXml() {
             var user = UserHelper.getUser(true);
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .body(user).contentType(MediaType.APPLICATION_XML_VALUE)
-            .when().log().all()
+            .when()
                 .put(USER + "/{id}", user.getId())
-            .then().log().all()
+            .then()
                 .statusCode(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value());
         }
 
@@ -158,7 +154,7 @@ public class UserControllerIT {
         void deveGerarExcecao_QuandoAlterarUserPorId_idNaoExiste() {
             var user = UserHelper.getUser(true);
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
                 .body(user).contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .put(USER + "/{id}", user.getId())
@@ -172,16 +168,10 @@ public class UserControllerIT {
     class RemoverUser {
         @Test
         void devePermitirRemoverUser() {
-            var user = new User(
-                    "janaina.alvares",
-                    "Janaina",
-                    "ccc@ddd.com",
-                    null,
-                    null
-            );
+            var user = new User();
             user.setId(UUID.fromString("f6497965-3cf0-4601-a631-01878ef70f40"));
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
             .when()
                 .delete(USER + "/{id}", user.getId())
             .then()
@@ -192,12 +182,31 @@ public class UserControllerIT {
         void deveGerarExcecao_QuandoRemoverUserPorId_idNaoExiste() {
             var user = UserHelper.getUser(true);
             given()
-                //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
             .when()
                 .delete(USER + "/{id}", user.getId())
             .then()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .body(equalTo("User não encontrado com o ID: " + user.getId()));
+        }
+
+        @Test
+        void deveGerarExcecao_QuandoRemoverUserPorId_roleUser() {
+            var user = new User(
+                    "usuario.comum",
+                    "Jose da Silva",
+                    "'07379758063'",
+                    null,
+                    UserRole.USER
+            );
+            user.setId(UUID.fromString("3929bac7-149a-443d-9a86-5afec529aaba"));
+            given()
+                    .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
+                    .when()
+                    .delete(USER + "/{id}", user.getId())
+                    .then()
+                    .statusCode(HttpStatus.FORBIDDEN.value())
+                    .body(equalTo("user não tem perfil para executar essa operação"));
         }
     }
 }

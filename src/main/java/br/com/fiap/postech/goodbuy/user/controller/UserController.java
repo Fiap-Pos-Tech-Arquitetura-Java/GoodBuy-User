@@ -1,6 +1,9 @@
 package br.com.fiap.postech.goodbuy.user.controller;
 
 import br.com.fiap.postech.goodbuy.user.entity.User;
+import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
+import br.com.fiap.postech.goodbuy.user.security.SecurityHelper;
+import br.com.fiap.postech.goodbuy.user.security.Token;
 import br.com.fiap.postech.goodbuy.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -10,18 +13,23 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@Service
 @RequestMapping("/user")
 public class UserController {
     private final UserService userService;
+    private final SecurityHelper securityHelper;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, SecurityHelper securityHelper) {
         this.userService = userService;
+        this.securityHelper = securityHelper;
     }
 
     @Operation(summary = "registra um user")
@@ -74,12 +82,27 @@ public class UserController {
     @Operation(summary = "remove um user por seu id")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable UUID id) {
+        if (!securityHelper.getLoggedUser().getRole().equals(UserRole.ADMIN)) {
+            return new ResponseEntity<>("user não tem perfil para executar essa operação", HttpStatus.FORBIDDEN);
+        }
         try {
             userService.delete(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException
                 exception) {
             return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Operation(summary = "realiza o login do user")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/login")
+    public ResponseEntity<Token> login(@Valid @RequestBody User user) {
+        try {
+            Token token = userService.login(user);
+            return new ResponseEntity<>(token, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new Token(null, e.getMessage()), HttpStatus.FORBIDDEN);
         }
     }
 }

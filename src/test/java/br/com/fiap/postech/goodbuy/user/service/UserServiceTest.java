@@ -1,8 +1,10 @@
 package br.com.fiap.postech.goodbuy.user.service;
 
 import br.com.fiap.postech.goodbuy.user.entity.User;
+import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.helper.UserHelper;
 import br.com.fiap.postech.goodbuy.user.repository.UserRepository;
+import br.com.fiap.postech.goodbuy.user.security.JwtService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,7 +12,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -32,12 +33,15 @@ public class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private JwtService jwtService;
+
     private AutoCloseable mock;
 
     @BeforeEach
     void setUp() {
         mock = MockitoAnnotations.openMocks(this);
-        userService = new UserServiceImpl(userRepository);
+        userService = new UserServiceImpl(userRepository, jwtService);
     }
 
     @AfterEach
@@ -76,6 +80,21 @@ public class UserServiceTest {
             verify(userRepository, times(1)).findByCpf(anyString());
             verify(userRepository, never()).save(any(User.class));
         }
+
+        @Test
+        void deveGerarExcecao_QuandoCadastrarUser_loginExistente() {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            when(userRepository.findByCpf(user.getCpf())).thenReturn(Optional.empty());
+            when(userRepository.findByLogin(user.getLogin())).thenReturn(Optional.of(user));
+            // Act
+            assertThatThrownBy(() -> userService.save(user))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Já existe um user cadastrado com esse login.");
+            // Assert
+            verify(userRepository, times(1)).findByCpf(anyString());
+            verify(userRepository, never()).save(any(User.class));
+        }
     }
 
     @Nested
@@ -90,6 +109,17 @@ public class UserServiceTest {
             // Assert
             assertThat(userObtido).isEqualTo(user);
             verify(userRepository, times(1)).findById(any(UUID.class));
+        }
+        @Test
+        void devePermitirBuscarUserPorLogin() {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            when(userRepository.findByLogin(user.getLogin())).thenReturn(Optional.of(user));
+            // Act
+            var userObtido = userService.findByLogin(user.getLogin());
+            // Assert
+            assertThat(userObtido).isEqualTo(user);
+            verify(userRepository, times(1)).findByLogin(anyString());
         }
 
         @Test
@@ -213,6 +243,40 @@ public class UserServiceTest {
         }
 
         @Test
+        void deveGerarExcecao_QuandoAlterarUserPorId_alterandoLogin() {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            var userParam = UserHelper.getUser(true);
+            userParam.setId(user.getId());
+            userParam.setLogin(user.getLogin() + "x");
+            when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+            UUID uuid = user.getId();
+            // Act && Assert
+            assertThatThrownBy(() -> userService.update(uuid, userParam))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Não é possível alterar o login de um user.");
+            verify(userRepository, times(1)).findById(any(UUID.class));
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void deveGerarExcecao_QuandoAlterarUserPorId_alterandoRole() {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            var userParam = UserHelper.getUser(true);
+            userParam.setId(user.getId());
+            userParam.setRole(UserRole.USER);
+            when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+            UUID uuid = user.getId();
+            // Act && Assert
+            assertThatThrownBy(() -> userService.update(uuid, userParam))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Não é possível alterar o perfil de um user.");
+            verify(userRepository, times(1)).findById(any(UUID.class));
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
         void deveGerarExcecao_QuandoAlterarUserPorId_alterandoCpf() {
             // Arrange
             var user = UserHelper.getUser(true);
@@ -257,6 +321,60 @@ public class UserServiceTest {
                     .hasMessage("User não encontrado com o ID: " + user.getId());
             verify(userRepository, times(1)).findById(any(UUID.class));
             verify(userRepository, never()).deleteById(any(UUID.class));
+        }
+    }
+
+    @Nested
+    class LoginUser {
+        @Test
+        void devePermitirLoginUser() throws Exception {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            var token = UserHelper.getToken(user);
+            when(userRepository.findByLogin(user.getLogin())).thenReturn(Optional.of(user));
+            when(jwtService.generateToken(any(User.class))).thenReturn(token);
+            var userLogin = new User(
+                    user.getLogin(),
+                    user.getName(),
+                    user.getCpf(),
+                    "123456",
+                    user.getRole()
+            );
+            // Act
+            var tokenObtido = userService.login(userLogin);
+            // Assert
+            assertThat(tokenObtido).isNotNull();
+            assertThat(tokenObtido.accessToken()).isNotNull();
+            assertThat(tokenObtido.erro()).isNull();
+            verify(userRepository, times(1)).findByLogin(anyString());
+            verify(jwtService, times(1)).generateToken(any(User.class));
+        }
+
+        @Test
+        void deveGerarExcecao_QuandoLoginUserInexistente() throws Exception {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            when(userRepository.findByLogin(user.getLogin())).thenReturn(Optional.empty());
+            // Act
+            assertThatThrownBy(() -> userService.login(user))
+                    .isInstanceOf(Exception.class)
+                    .hasMessage("Usuario informado não encontrado.");
+            // Assert
+            verify(userRepository, times(1)).findByLogin(anyString());
+        }
+
+        @Test
+        void deveGerarExcecao_QuandoLoginUserSenhaErrada() throws Exception {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            user.setPassword("senha_errada");
+            when(userRepository.findByLogin(user.getLogin())).thenReturn(Optional.of(user));
+            // Act
+            assertThatThrownBy(() -> userService.login(user))
+                    .isInstanceOf(Exception.class)
+                    .hasMessage("Senha do User informado não confere.");
+            // Assert
+            verify(userRepository, times(1)).findByLogin(anyString());
         }
     }
 }

@@ -2,6 +2,9 @@ package br.com.fiap.postech.goodbuy.user.controller;
 
 import br.com.fiap.postech.goodbuy.user.entity.User;
 import br.com.fiap.postech.goodbuy.user.helper.UserHelper;
+import br.com.fiap.postech.goodbuy.user.security.JwtService;
+import br.com.fiap.postech.goodbuy.user.security.SecurityHelper;
+import br.com.fiap.postech.goodbuy.user.security.Token;
 import br.com.fiap.postech.goodbuy.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -31,12 +35,16 @@ class UserControllerTest {
     private MockMvc mockMvc;
     @Mock
     private UserService userService;
+    @Mock
+    private SecurityHelper securityHelper;
+
     private AutoCloseable mock;
 
     @BeforeEach
     void setUp() {
+
         mock = MockitoAnnotations.openMocks(this);
-        UserController userController = new UserController(userService);
+        UserController userController = new UserController(userService, securityHelper);
         mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
     }
 
@@ -192,6 +200,7 @@ class UserControllerTest {
             // Arrange
             var user = UserHelper.getUser(true);
             doNothing().when(userService).delete(user.getId());
+            when(securityHelper.getLoggedUser()).thenReturn(user);
             // Act
             mockMvc.perform(delete("/user/{id}", user.getId()))
                     .andExpect(status().isNoContent());
@@ -204,6 +213,7 @@ class UserControllerTest {
         void deveGerarExcecao_QuandoRemoverUserPorId_idNaoExiste() throws Exception {
             // Arrange
             var user = UserHelper.getUser(true);
+            when(securityHelper.getLoggedUser()).thenReturn(user);
             doThrow(new IllegalArgumentException("User não encontrado com o ID: " + user.getId()))
                     .when(userService).delete(user.getId());
             // Act
@@ -211,6 +221,24 @@ class UserControllerTest {
                     .andExpect(status().isBadRequest());
             // Assert
             verify(userService, times(1)).delete(user.getId());
+        }
+    }
+
+    @Nested
+    class LoginUser {
+        @Test
+        void devePermitirLoginUser() throws Exception {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            var token = new Token(UserHelper.getToken(user), null);
+            when(userService.login(any(User.class))).thenReturn(token);
+            // Act
+            mockMvc.perform(
+                            post(USER + "/login").contentType(MediaType.APPLICATION_JSON)
+                                    .content(asJsonString(user)))
+                    .andExpect(status().isCreated());
+            // Assert
+            verify(userService, times(1)).login(any(User.class));
         }
     }
 }
