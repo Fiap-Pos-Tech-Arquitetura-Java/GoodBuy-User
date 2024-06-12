@@ -104,10 +104,6 @@ public class UserServiceImpl implements UserService {
         if (!encoder.matches(user.getPassword(), u.getPassword())) {
             throw new Exception("Senha do User informado não confere.");
         }
-        try {
-            return new Token(jwtService.generateToken(user), null);
-        } catch (Exception e) {
-            return new Token(null, e.getMessage());
-        }
+        return new Token(jwtService.generateToken(user), null);
     }
 }

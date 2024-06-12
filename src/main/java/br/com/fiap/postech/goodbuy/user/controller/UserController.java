@@ -80,11 +80,9 @@ public class UserController {
     }
 
     @Operation(summary = "remove um user por seu id")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable UUID id) {
-        if (!securityHelper.getLoggedUser().getRole().equals(UserRole.ADMIN)) {
-            return new ResponseEntity<>("user não tem perfil para executar essa operação", HttpStatus.FORBIDDEN);
-        }
         try {
             userService.delete(id);
             return ResponseEntity.noContent().build();
@@ -95,14 +93,9 @@ public class UserController {
     }
 
     @Operation(summary = "realiza o login do user")
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/login")
-    public ResponseEntity<Token> login(@Valid @RequestBody User user) {
-        try {
-            Token token = userService.login(user);
-            return new ResponseEntity<>(token, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Token(null, e.getMessage()), HttpStatus.FORBIDDEN);
-        }
+    public ResponseEntity<Token> login(@Valid @RequestBody User user) throws Exception {
+        Token token = userService.login(user);
+        return new ResponseEntity<>(token, HttpStatus.CREATED);
     }
 }

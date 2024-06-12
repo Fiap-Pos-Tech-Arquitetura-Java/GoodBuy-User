@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,6 +24,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class BasicSecurityConfig {
 	private static final Logger LOGGER = LoggerFactory
 			.getLogger(BasicSecurityConfig.class);
@@ -63,7 +65,6 @@ public class BasicSecurityConfig {
 						.requestMatchers("/swagger-ui/**").permitAll()
 						.requestMatchers("/v3/api-docs/**").permitAll()
 						.requestMatchers("/error/**").permitAll()
-						////.requestMatchers(HttpMethod.DELETE,"/user").hasRole("ADMIN")
 						.anyRequest().authenticated())
 				.sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
 				.authenticationProvider(authenticationProvider()).addFilterBefore(

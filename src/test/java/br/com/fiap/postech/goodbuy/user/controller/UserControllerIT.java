@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -200,13 +201,17 @@ public class UserControllerIT {
                     UserRole.USER
             );
             user.setId(UUID.fromString("3929bac7-149a-443d-9a86-5afec529aaba"));
-            given()
+            var response = given()
                     .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
-                    .when()
+            .when()
                     .delete(USER + "/{id}", user.getId())
-                    .then()
+            .then()
                     .statusCode(HttpStatus.FORBIDDEN.value())
-                    .body(equalTo("user não tem perfil para executar essa operação"));
+                    .body(matchesJsonSchemaInClasspath("schemas/error.schema.json"))
+                    .extract().jsonPath();
+
+            var error = response.get("error");
+            assertThat(error).isEqualTo("Forbidden");
         }
     }
 }
