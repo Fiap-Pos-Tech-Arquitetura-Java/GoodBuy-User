@@ -101,6 +101,17 @@ class UserControllerTest {
             verify(userService, times(1)).findById(any(UUID.class));
         }
         @Test
+        void devePermitirBuscarUserPorLogin() throws Exception {
+            // Arrange
+            var user = UserHelper.getUser(true);
+            when(userService.findByLogin(anyString())).thenReturn(user);
+            // Act
+            mockMvc.perform(get("/user/findByLogin/{login}", user.getLogin()))
+                    .andExpect(status().isOk());
+            // Assert
+            verify(userService, times(1)).findByLogin(anyString());
+        }
+        @Test
         void deveGerarExcecao_QuandoBuscarUserPorId_idNaoExiste() throws Exception {
             // Arrange
             var user = UserHelper.getUser(true);

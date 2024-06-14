@@ -68,6 +68,17 @@ public class UserController {
         }
     }
 
+    @Operation(summary = "lista um user por seu login")
+    @GetMapping("/findByLogin/{login}")
+    public ResponseEntity<User> findByLogin(@PathVariable String login) {
+        try {
+            User user = userService.findByLogin(login);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @Operation(summary = "altera um user por seu id")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable UUID id, @Valid @RequestBody User userDTO) {

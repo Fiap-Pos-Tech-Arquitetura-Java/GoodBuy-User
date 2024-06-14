@@ -61,6 +61,7 @@ public class BasicSecurityConfig {
 		http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(request -> request
 						.requestMatchers(HttpMethod.POST,"/user").permitAll()
+						.requestMatchers(HttpMethod.GET,"/user/findByLogin/**").permitAll()
 						.requestMatchers("/user/login").permitAll()
 						.requestMatchers("/swagger-ui/**").permitAll()
 						.requestMatchers("/v3/api-docs/**").permitAll()

@@ -79,6 +79,18 @@ public class UserControllerIT {
                 .body(matchesJsonSchemaInClasspath("schemas/user.schema.json"));
         }
         @Test
+        void devePermitirBuscarUserPorLogin() {
+            var login = "anderson.wagner";
+            given()
+                    //.header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .when()
+                    .get(USER + "/findByLogin/{login}", login)
+                    .then()
+                    .statusCode(HttpStatus.OK.value())
+                    .body(matchesJsonSchemaInClasspath("schemas/user.schema.json"));
+        }
+        @Test
         void deveGerarExcecao_QuandoBuscarUserPorId_idNaoExiste() {
             var id = UserHelper.getUser(true).getId();
             given()
