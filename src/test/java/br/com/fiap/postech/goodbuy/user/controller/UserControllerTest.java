@@ -1,9 +1,8 @@
 package br.com.fiap.postech.goodbuy.user.controller;
 
+import br.com.fiap.postech.goodbuy.security.SecurityHelper;
 import br.com.fiap.postech.goodbuy.user.entity.User;
 import br.com.fiap.postech.goodbuy.user.helper.UserHelper;
-import br.com.fiap.postech.goodbuy.user.security.JwtService;
-import br.com.fiap.postech.goodbuy.user.security.SecurityHelper;
 import br.com.fiap.postech.goodbuy.user.security.Token;
 import br.com.fiap.postech.goodbuy.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +16,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -211,7 +209,7 @@ class UserControllerTest {
             // Arrange
             var user = UserHelper.getUser(true);
             doNothing().when(userService).delete(user.getId());
-            when(securityHelper.getLoggedUser()).thenReturn(user);
+            when(securityHelper.getLoggedUser()).thenReturn(user.getLogin());
             // Act
             mockMvc.perform(delete("/user/{id}", user.getId()))
                     .andExpect(status().isNoContent());
@@ -224,7 +222,7 @@ class UserControllerTest {
         void deveGerarExcecao_QuandoRemoverUserPorId_idNaoExiste() throws Exception {
             // Arrange
             var user = UserHelper.getUser(true);
-            when(securityHelper.getLoggedUser()).thenReturn(user);
+            when(securityHelper.getLoggedUser()).thenReturn(user.getLogin());
             doThrow(new IllegalArgumentException("User não encontrado com o ID: " + user.getId()))
                     .when(userService).delete(user.getId());
             // Act

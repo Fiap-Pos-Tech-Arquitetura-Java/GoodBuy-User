@@ -1,8 +1,7 @@
 package br.com.fiap.postech.goodbuy.user.controller;
 
+import br.com.fiap.postech.goodbuy.security.SecurityHelper;
 import br.com.fiap.postech.goodbuy.user.entity.User;
-import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
-import br.com.fiap.postech.goodbuy.user.security.SecurityHelper;
 import br.com.fiap.postech.goodbuy.user.security.Token;
 import br.com.fiap.postech.goodbuy.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;

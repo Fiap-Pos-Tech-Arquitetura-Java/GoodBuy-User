@@ -1,8 +1,10 @@
 package br.com.fiap.postech.goodbuy.user.helper;
 
+import br.com.fiap.postech.goodbuy.security.JwtService;
+import br.com.fiap.postech.goodbuy.security.UserDetailsImpl;
+import br.com.fiap.postech.goodbuy.security.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.entity.User;
-import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
-import br.com.fiap.postech.goodbuy.user.security.JwtService;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.UUID;
@@ -31,11 +33,18 @@ public class UserHelper {
         return getToken(getUser(true));
     }
 
-    public static String getToken(UserRole userRole) {
-        return getToken(getUser(true, userRole));
+    public static String getToken(User user) {
+        br.com.fiap.postech.goodbuy.security.User userSecurity = getUserForSecurity(user);
+        return "Bearer " + new JwtService().generateToken(userSecurity);
     }
 
-    public static String getToken(User user) {
-        return "Bearer " + new JwtService().generateToken(user);
+    public static UserDetails getUserDetails(User user) {
+        return new UserDetailsImpl(getUserForSecurity(user));
+    }
+
+    private static br.com.fiap.postech.goodbuy.security.User getUserForSecurity(User user) {
+        br.com.fiap.postech.goodbuy.security.User userSecurity =
+                new br.com.fiap.postech.goodbuy.security.User(user.getLogin(), user.getPassword(), user.getRole());
+        return userSecurity;
     }
 }

@@ -1,6 +1,6 @@
 package br.com.fiap.postech.goodbuy.user.entity;
 
-import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
+import br.com.fiap.postech.goodbuy.security.enums.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

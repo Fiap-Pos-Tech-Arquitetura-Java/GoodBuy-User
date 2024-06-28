@@ -1,7 +1,8 @@
 package br.com.fiap.postech.goodbuy.user.controller;
 
+import br.com.fiap.postech.goodbuy.security.UserDetailsServiceImpl;
+import br.com.fiap.postech.goodbuy.security.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.entity.User;
-import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.helper.UserHelper;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,8 @@ import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase
@@ -30,6 +34,9 @@ public class UserControllerIT {
     public static final String USER = "/goodbuy/user";
     @LocalServerPort
     private int port;
+
+    @MockBean
+    private UserDetailsServiceImpl userDetailsService;
 
     @BeforeEach
     void setup() {
@@ -43,8 +50,11 @@ public class UserControllerIT {
         void devePermitirCadastrarUser() {
             var user = UserHelper.getUser(false);
             user.setLogin(user.getLogin() + "!!!");
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
                 .contentType(MediaType.APPLICATION_JSON_VALUE).body(user)
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
             .when()
                 .post(USER)
             .then()
@@ -68,9 +78,13 @@ public class UserControllerIT {
     class BuscarUser {
         @Test
         void devePermitirBuscarUserPorId() {
-            var id = "7a04f6fb-c79b-4b47-af54-9bef34cbab35";
+            var id = UUID.fromString("7a04f6fb-c79b-4b47-af54-9bef34cbab35");
+            var user = UserHelper.getUser(false);
+            user.setId(id);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .get(USER + "/{id}", id)
@@ -92,20 +106,25 @@ public class UserControllerIT {
         }
         @Test
         void deveGerarExcecao_QuandoBuscarUserPorId_idNaoExiste() {
-            var id = UserHelper.getUser(true).getId();
+            var user = UserHelper.getUser(true);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
-                .get(USER + "/{id}", id)
+                .get(USER + "/{id}", user.getId())
             .then()
                 .statusCode(HttpStatus.BAD_REQUEST.value());
         }
 
         @Test
         void devePermitirBuscarTodosUser() {
+            User user = UserHelper.getUser(true);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .get(USER)
@@ -116,8 +135,11 @@ public class UserControllerIT {
 
         @Test
         void devePermitirBuscarTodosUser_ComPaginacao() {
+            User user = UserHelper.getUser(true);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .queryParam("page", "1")
                 .queryParam("size", "1")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -137,12 +159,14 @@ public class UserControllerIT {
                     "kaiby.santos",
                     "Kaiby o mestre do miro !!!",
                     "52816804046",
-                    null,
-                    null
+                    "null",
+                    UserRole.ADMIN
             );
             user.setId(UUID.fromString("c5ce37f4-3160-48d0-bd89-1d680ff77808"));
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .body(user).contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .put(USER + "/{id}", user.getId())
@@ -154,8 +178,10 @@ public class UserControllerIT {
         @Test
         void deveGerarExcecao_QuandoAlterarUser_RequisicaoXml() {
             var user = UserHelper.getUser(true);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .body(user).contentType(MediaType.APPLICATION_XML_VALUE)
             .when()
                 .put(USER + "/{id}", user.getId())
@@ -166,8 +192,10 @@ public class UserControllerIT {
         @Test
         void deveGerarExcecao_QuandoAlterarUserPorId_idNaoExiste() {
             var user = UserHelper.getUser(true);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
                 .body(user).contentType(MediaType.APPLICATION_JSON_VALUE)
             .when()
                 .put(USER + "/{id}", user.getId())
@@ -181,10 +209,12 @@ public class UserControllerIT {
     class RemoverUser {
         @Test
         void devePermitirRemoverUser() {
-            var user = new User();
+            var user = UserHelper.getUser(false);
             user.setId(UUID.fromString("f6497965-3cf0-4601-a631-01878ef70f40"));
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
             .when()
                 .delete(USER + "/{id}", user.getId())
             .then()
@@ -194,8 +224,10 @@ public class UserControllerIT {
         @Test
         void deveGerarExcecao_QuandoRemoverUserPorId_idNaoExiste() {
             var user = UserHelper.getUser(true);
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             given()
-                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken())
+                .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
             .when()
                 .delete(USER + "/{id}", user.getId())
             .then()
@@ -213,6 +245,8 @@ public class UserControllerIT {
                     UserRole.USER
             );
             user.setId(UUID.fromString("3929bac7-149a-443d-9a86-5afec529aaba"));
+            var userDetails = UserHelper.getUserDetails(user);
+            when(userDetailsService.loadUserByUsername(anyString())).thenReturn(userDetails);
             var response = given()
                     .header(HttpHeaders.AUTHORIZATION, UserHelper.getToken(user))
             .when()

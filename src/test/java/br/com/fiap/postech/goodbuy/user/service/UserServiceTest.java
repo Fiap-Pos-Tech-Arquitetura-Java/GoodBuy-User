@@ -1,10 +1,10 @@
 package br.com.fiap.postech.goodbuy.user.service;
 
+import br.com.fiap.postech.goodbuy.security.JwtService;
+import br.com.fiap.postech.goodbuy.security.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.entity.User;
-import br.com.fiap.postech.goodbuy.user.entity.enums.UserRole;
 import br.com.fiap.postech.goodbuy.user.helper.UserHelper;
 import br.com.fiap.postech.goodbuy.user.repository.UserRepository;
-import br.com.fiap.postech.goodbuy.user.security.JwtService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -332,7 +332,7 @@ public class UserServiceTest {
             var user = UserHelper.getUser(true);
             var token = UserHelper.getToken(user);
             when(userRepository.findByLogin(user.getLogin())).thenReturn(Optional.of(user));
-            when(jwtService.generateToken(any(User.class))).thenReturn(token);
+            when(jwtService.generateToken(any(br.com.fiap.postech.goodbuy.security.User.class))).thenReturn(token);
             var userLogin = new User(
                     user.getLogin(),
                     user.getName(),
@@ -347,7 +347,7 @@ public class UserServiceTest {
             assertThat(tokenObtido.accessToken()).isNotNull();
             assertThat(tokenObtido.erro()).isNull();
             verify(userRepository, times(1)).findByLogin(anyString());
-            verify(jwtService, times(1)).generateToken(any(User.class));
+            verify(jwtService, times(1)).generateToken(any(br.com.fiap.postech.goodbuy.security.User.class));
         }
 
         @Test

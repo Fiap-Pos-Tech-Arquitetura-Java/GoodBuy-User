@@ -1,8 +1,8 @@
 package br.com.fiap.postech.goodbuy.user.service;
 
+import br.com.fiap.postech.goodbuy.security.JwtService;
 import br.com.fiap.postech.goodbuy.user.entity.User;
 import br.com.fiap.postech.goodbuy.user.repository.UserRepository;
-import br.com.fiap.postech.goodbuy.user.security.JwtService;
 import br.com.fiap.postech.goodbuy.user.security.Token;
 import io.micrometer.common.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,6 +104,8 @@ public class UserServiceImpl implements UserService {
         if (!encoder.matches(user.getPassword(), u.getPassword())) {
             throw new Exception("Senha do User informado não confere.");
         }
-        return new Token(jwtService.generateToken(user), null);
+        br.com.fiap.postech.goodbuy.security.User userSecurity =
+                new br.com.fiap.postech.goodbuy.security.User(user.getLogin(), user.getPassword(), user.getRole());
+        return new Token(jwtService.generateToken(userSecurity), null);
     }
 }
