@@ -67,7 +67,7 @@ public class UserController {
         }
     }
 
-    @Operation(summary = "lista um user por seu login")
+    @Operation(summary = "lista um user por seu login", hidden = true)
     @GetMapping("/findByLogin/{login}")
     public ResponseEntity<User> findByLogin(@PathVariable String login) {
         try {
