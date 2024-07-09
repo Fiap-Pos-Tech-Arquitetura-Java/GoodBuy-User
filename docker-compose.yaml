@@ -9,6 +9,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - SPRING_PROFILES_ACTIVE=development
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/goodbuy-user-db
       - SPRING_DATASOURCE_USERNAME=goodBuy
       - SPRING_DATASOURCE_PASSWORD=goodBuyUser
