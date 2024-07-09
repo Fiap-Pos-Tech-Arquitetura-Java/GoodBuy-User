@@ -1,9 +1,9 @@
 services:
   goodbuy-user:
-    image: 'goodbuy-user-docker-image'
+    image: 'goodbuy-user-image'
     build:
       context: .
-    container_name: 'goodbuy-user-docker-container'
+    container_name: 'goodbuy-user-container'
     depends_on:
       - db
     ports:
